@@ -1,0 +1,84 @@
+#include <stdio.h>
+#include<winsock.h>
+#include<string.h>
+#include<iostream>
+using namespace std;
+#pragma comment(lib,"wsock32.lib")
+
+int input_startport()//输入起始端口号
+{
+	
+	int startport;	
+	cout << "请输入起始端口号：";
+	cin >> startport;
+	cout << endl;
+	return startport;
+}
+
+int input_endport()//输入结束端口号
+{
+	int endport;
+	cout << "请输入结束端口号：";
+	cin >> endport;
+	cout << endl;
+	return endport;
+}
+
+char des_ip[30];
+char* input_ip()//输入目的主机IP地址
+{
+	cout << "请输入目的主机IP地址：";
+	cin >> des_ip;
+	cout << endl;
+	return des_ip;
+}
+
+void scan(char des_ip[],int startport,int endport,sockaddr_in addr)
+{//从目的主机IP地址的起始端口开始扫描
+
+	cout<<" IP地址	  端口	状态"<<endl;
+	for (int i = startport; i <= endport; i++)
+		{
+			//每扫描一个端口创建一个新的套接字
+			SOCKET s = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+			if (s == INVALID_SOCKET)
+			{
+				printf("Failed socket() %d \n", ::WSAGetLastError());
+			}
+			//设置远程地址信息中的端口号为需要扫描的当前端口号
+			addr.sin_port = htons(i);
+			int ret = connect(s, (LPSOCKADDR)&addr, sizeof(addr));//请求连接，成功返回0
+			if (ret ==0)//表示端口开启
+			{
+				printf("%s:%d  端口开启\n", des_ip, i);
+			}
+			else//表示端口关闭
+			{
+				printf("%s:%d  端口关闭\n", des_ip, i);
+			}
+			::closesocket(s);//关闭
+		}
+		cout << endl;
+}
+
+int main()
+{
+	WSADATA wsaData;
+	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+	{
+		cout << "WSAStartup  无法初始化！" << endl;
+		return 0;
+	}
+	// 填写远程地址信息
+	sockaddr_in addr;
+	addr.sin_family = AF_INET;
+	input_ip();
+	//设置获取的用户输入IP地址为远程IP地址 
+	addr.sin_addr.S_un.S_addr = inet_addr(des_ip);
+	int startport=input_startport();
+	int endport=input_endport();
+	scan(des_ip,startport,endport,addr);
+	if (WSACleanup() == SOCKET_ERROR)
+		cout << "WSACleanup 出错！" << endl;
+	return 0;
+}
